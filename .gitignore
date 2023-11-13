@@ -16,7 +16,7 @@
 *.sqlite3\
 *.db-shm\
 *.db-wal\
-.Ds_Store\
+*.DS_Store\
 \
 ### JetBrains ###\
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider\
@@ -521,4 +521,5 @@ fastlane/Preview.html\
 fastlane/screenshots/**/*.png\
 fastlane/test_output\
 \
-}.DS_Store
+*.DS_Store
+*.idea
