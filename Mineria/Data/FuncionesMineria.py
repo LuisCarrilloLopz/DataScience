@@ -17,7 +17,7 @@ import math
 
 warnings.filterwarnings("ignore")
 
-def curva_roc(x_test_modelo, y_test, modelo):
+def curva_roc(x_test_modelo: object, y_test: object, modelo: object) -> object:
     """
     Calcula la curva ROC y muestra la gráfica.
 
@@ -1878,4 +1878,11 @@ def glm_stepwise(varObjBin, datos, var_cont, var_categ, var_interac = [], metodo
     # Devolver el modelo final con el conjunto de variables seleccionado.
     return glm(varObjBin, datos, var_cont_final, var_categ_final, var_interac_final)
 
+# Eliminar todas las variables excepto una o dos
+def rm(conservar=[]):
+    globals_ = globals()
+    a_conservar = conservar + ['__builtin__', '__builtins__', '__name__', '__doc__', '__package__', '_oh','limpiar_entorno']
+    for variable in list(globals_.keys()):
+        if variable not in a_conservar:
+            del globals_[variable]
 
