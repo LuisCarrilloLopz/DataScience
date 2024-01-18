@@ -1,6 +1,7 @@
 # Cargo las librerias que voy a utilizar
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
@@ -53,7 +54,7 @@ var_categ1 = ['ActividadPpal', 'Densidad']
 # %% Creo el modelo inicial
 modeloInicial = glm(y_train, x_train, var_cont1, var_categ1)
 # Visualizamos los resultado del modelo
-summary_glm(modeloInicial['Modelo'], y_train, modeloInicial['X'])
+a = summary_glm(modeloInicial['Modelo'], y_train, modeloInicial['X'])
 
 # %% Calculamos la medida de ajuste R^2 para los datos de entrenamiento
 pseudoR2(modeloInicial['Modelo'], modeloInicial['X'], y_train)
@@ -81,7 +82,7 @@ var_categ2 = ['ActividadPpal', 'Densidad']
 # %% Creo el modelo dos
 modelo2 = glm(y_train, x_train, var_cont2, var_categ2)
 # Visualizamos los resultado del modelo
-summary_glm(modelo2['Modelo'], y_train, modelo2['X'])
+b = summary_glm(modelo2['Modelo'], y_train, modelo2['X'])
 
 # %% Calculamos la medida de ajuste R^2 para los datos de entrenamiento
 pseudoR2(modelo2['Modelo'], modelo2['X'], y_train)
@@ -111,7 +112,7 @@ var_categ3 = ['ActividadPpal', 'Densidad']
 # %% Creo el modelo tres
 modelo3 = glm(y_train, x_train, var_cont3, var_categ3)
 # Visualizamos los resultado del modelo
-summary_glm(modelo3['Modelo'], y_train, modelo3['X'])
+c = summary_glm(modelo3['Modelo'], y_train, modelo3['X'])
 
 # %% Calculamos la medida de ajuste R^2 para los datos de entrenamiento
 pseudoR2(modelo3['Modelo'], modelo3['X'], y_train)
@@ -138,7 +139,7 @@ var_categ4 = []
 # %% Creo el modelo cuatro
 modelo4 = glm(y_train, x_train, var_cont4, var_categ4)
 # Visualizamos los resultado del modelo
-summary_glm(modelo4['Modelo'], y_train, modelo4['X'])
+d = summary_glm(modelo4['Modelo'], y_train, modelo4['X'])
 
 # %% Calculamos la medida de ajuste R^2 para los datos de entrenamiento
 pseudoR2(modelo4['Modelo'], modelo4['X'], y_train)
@@ -165,7 +166,7 @@ var_interac5 = [('PersonasInmueble', 'Age_under19_Ptge')]
 # %% Creo el modelo cinco
 modelo5 = glm(y_train, x_train, var_cont5, var_categ5, var_interac5)
 # Visualizamos los resultado del modelo
-summary_glm(modelo5['Modelo'], y_train, modelo5['X'])
+e = summary_glm(modelo5['Modelo'], y_train, modelo5['X'])
 
 # %% Calculamos la medida de ajuste R^2 para los datos de entrenamiento
 pseudoR2(modelo5['Modelo'], modelo5['X'], y_train)
@@ -233,8 +234,8 @@ print(num_params)
 #%%## Buscamos el mejor punto de corte
 
 # Probamos dos cualesquiera
-sensEspCorte(modelo3['Modelo'], x_test, y_test, 0.4, var_cont3, var_categ3) # punto de corte = 0.4
-sensEspCorte(modelo3['Modelo'], x_test, y_test, 0.6, var_cont3, var_categ3)
+sensEspCorte(modelo4['Modelo'], x_test, y_test, 0.4, var_cont4, var_categ4) # punto de corte = 0.4
+sensEspCorte(modelo4['Modelo'], x_test, y_test, 0.6, var_cont4, var_categ4)
 
 #%% Generamos una rejilla de puntos de corte
 posiblesCortes = np.arange(0, 1.01, 0.01).tolist()  # Generamos puntos de corte de 0 a 1 con intervalo de 0.01
@@ -249,7 +250,7 @@ rejilla = pd.DataFrame({
 
 for pto_corte in posiblesCortes:  # Iteramos sobre los puntos de corte
     rejilla = pd.concat(
-        [rejilla, sensEspCorte(modelo3['Modelo'], x_test, y_test, pto_corte, var_cont3, var_categ3)],
+        [rejilla, sensEspCorte(modelo4['Modelo'], x_test, y_test, pto_corte, var_cont4, var_categ4)],
         axis=0
     )  # Calculamos las métricas para el punto de corte actual y lo agregamos al DataFrame
 
@@ -275,15 +276,15 @@ rejilla['PtoCorte'][rejilla['Accuracy'].idxmax()]
 
 #%% El resultado es 0.64 para youden y 0.53 para Accuracy
 # Los comparamos
-sensEspCorte(modelo3['Modelo'], x_test, y_test, 0.75, var_cont3, var_categ3)
-sensEspCorte(modelo3['Modelo'], x_test, y_test, 0.5, var_cont3, var_categ3)
+sensEspCorte(modelo4['Modelo'], x_test, y_test, 0.64, var_cont4, var_categ4)
+sensEspCorte(modelo4['Modelo'], x_test, y_test, 0.53, var_cont4, var_categ4)
 
 #%% Vemos las variables mas importantes del modelo ganador
-impVariablesLog(modelo3, y_train, x_train, var_cont3, var_categ3)
+impVariablesLog(modelo4, y_train, x_train, var_cont4, var_categ4)
 
 #%% Vemos los coeficientes del modelo ganador
-coeficientes = modelo3['Modelo'].coef_
-nombres_caracteristicas = crear_data_modelo(x_train, var_cont3, var_categ3).columns  # Suponiendo que X_train es un DataFrame de pandas
+coeficientes = modelo4['Modelo'].coef_
+nombres_caracteristicas = crear_data_modelo(x_train, var_cont4, var_categ4).columns  # Suponiendo que X_train es un DataFrame de pandas
 
 #%% Imprime los nombres de las características junto con sus coeficientes
 for nombre, coef in zip(nombres_caracteristicas, coeficientes[0]):
@@ -302,3 +303,5 @@ curva_roc(x_test_modelo3, y_test, modelo3)
 sensEspCorte(modelo5['Modelo'], x_train, y_train, 0.5, var_cont5, var_categ5)
 sensEspCorte(modelo5['Modelo'], x_test, y_test, 0.5, var_cont5, var_categ5)
 
+
+#%%
