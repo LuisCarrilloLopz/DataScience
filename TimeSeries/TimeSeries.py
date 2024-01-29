@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from statsmodels.tsa.seasonal import seasonal_decompose
 import statsmodels.api as sm
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 #%%
 os.chdir('/Users/luiscarrillo/OneDrive/Desktop/GitHub/DataScience/TimeSeries/Datasets/')
@@ -194,5 +195,197 @@ plt.title('Valores Observados, Suavizado Holt-Winters y Predicción')
 plt.legend()
 plt.xticks(rotation=30, ha='right')
 plt.show()
+
+#%%
+################
+## Time Series Vuelos  ##
+################
+
+#%% Ejercicio de clase con Vuelos
+vuelos = pd.read_excel("VUELOS.xlsx")
+print(vuelos.head())
+#%%
+vuelos['MES'] = vuelos['MES'].str.replace('M', '-')
+vuelos['MES'] = pd.to_datetime(vuelos['MES'], format='%Y-%m')
+print(vuelos.head())
+
+#%%
+print(f'\nRango de fechas: {vuelos.MES.min()}/{ vuelos.MES.max()}')
+
+#%%# se establece la columna fecha como índice y se elimina
+vuelos.index = vuelos['MES']
+del vuelos['MES']
+print(vuelos.head())
+sns.lineplot(vuelos)
+plt.xticks(rotation=30, ha='right')
+
+#%% Asume que 'df' es tu DataFrame y 'value' es la columna que contiene tu serie temporal
+s = sm.tsa.seasonal_decompose(vuelos['Vuelos'], model='multiplicative')
+
+#%% Para calcular los coeficientes de estacionalidad, puedes obtenerlos directamente de la descomposición.
+# 's.seasonal' es una serie de pandas que contiene los coeficientes de estacionalidad para cada timestamp en 'df'.
+coef_estacionalidad = s.seasonal
+
+#%% La componente irregular (o residuo) también puede obtenerse directamente de la descomposición
+componente_irregular = s.resid
+
+# Ahora, para visualizar los coeficientes de estacionalidad y la componente irregular junto con la serie original, puedes hacer:
+plt.figure(figsize=(8, 6))
+plt.subplot(311)
+plt.plot(vuelos['Vuelos'])
+plt.xlabel('Tiempo')
+plt.ylabel('Value')
+plt.title('Serie Original')
+plt.subplot(312)
+plt.plot(s.seasonal)
+plt.xlabel('Tiempo')
+plt.ylabel('Coef. Estacionalidad')
+plt.title('Componente Estacional')
+plt.subplot(313)
+plt.plot(s.resid)
+plt.xlabel('Tiempo')
+plt.ylabel('Residuo')
+plt.title('Componente Irregular')
+plt.tight_layout()
+plt.show()
+
+#%%
+plt.plot(s.observed/s.seasonal, label='Ajustada Estacionalidad', color='red')
+plt.plot(s.trend, label='Tendencia', color='blue')
+plt.plot(s.observed, label='Observado', color='black')
+plt.legend()
+plt.title("Descomposición de la serie de tiempo")
+plt.xlabel("Fecha")
+plt.ylabel("Cantidad de viajeros")
+plt.show()
+
+#%%
+vuelos['Año'] = pd.to_datetime(vuelos.index, format='%YM%m').year
+plt.figure(figsize=(12, 8))
+for Año, datos_año in vuelos.groupby('Año'):
+    plt.plot(datos_año.index.month, datos_año['Vuelos'], label=str(Año))
+# Añadir leyendas y título
+plt.legend(title='Año')
+plt.title('Seasonal Plot Vuelos')
+plt.xlabel('Mes')
+plt.ylabel('Vuelos')
+# Mostrar el gráfico
+plt.show()
+
+#%% Crear la muestra de entrenamiento del modelo
+vuelos = vuelos.sort_index()
+Vuelos_TR = vuelos.loc[:vuelos.index[-13]]
+
+#%%# Aplicar suavizado Holt-Winters. Prueba 1
+#crear una muestra de entrenamiento del modelo con las diferencias
+diferenciada = Vuelos_TR['Vuelos'].diff().dropna()
+df_diferenciada = diferenciada.to_frame()
+print(df_diferenciada.head())
+
+#%% Aplicar suavizado Holt-Winters.
+modelo_holt_winters = sm.tsa.ExponentialSmoothing(df_diferenciada['Vuelos'],
+                                                  trend='add',
+                                                  seasonal='add',
+                                                  seasonal_periods=12).fit()
+
+# Obtener predicciones para 1 año
+predicciones_hw = modelo_holt_winters.forecast(steps=12)
+# Mostrar la descripción del modelo
+modelo_holt_winters.summary()
+
+#%%# Crear un gráfico con matplotlib
+plt.figure(figsize=(10, 6))
+plt.plot(df_diferenciada.index, df_diferenciada['Vuelos'], label='Observados', marker='x', linestyle='-', color='blue')
+plt.plot(df_diferenciada.index, modelo_holt_winters.fittedvalues, label='Suavizado Holt-Winters', linestyle='--',
+         color='orange')
+plt.plot(predicciones_hw.index, predicciones_hw, label='Holt-Winters', linestyle='--',color='green')
+plt.xlabel('Fecha')
+plt.ylabel('Cantidad')
+plt.title('Valores Observados, Suavizado Holt-Winters y Predicción')
+plt.legend()
+plt.xticks(rotation=30, ha='right')
+plt.show()
+
+#%% Aplicar suavizado Holt-Winters.
+#Segunda forma a ver que pasa
+modelo_holt_winters = sm.tsa.ExponentialSmoothing(Vuelos_TR['Vuelos'],
+                                                  trend='add',
+                                                  seasonal='add',
+                                                  seasonal_periods=12).fit()
+
+# Obtener predicciones para 1 año
+predicciones_hw = modelo_holt_winters.forecast(steps=12)
+# Mostrar la descripción del modelo
+modelo_holt_winters.summary()
+
+#%%# Crear un gráfico con matplotlib
+plt.figure(figsize=(10, 6))
+plt.plot(vuelos.index, vuelos['Vuelos'], label='Observados', marker='x', linestyle='-', color='blue')
+plt.plot(Vuelos_TR.index, modelo_holt_winters.fittedvalues, label='Suavizado Holt-Winters', linestyle='--',
+         color='orange')
+plt.plot(predicciones_hw.index, predicciones_hw, label='Holt-Winters', linestyle='--',color='green')
+plt.xlabel('Fecha')
+plt.ylabel('Cantidad')
+plt.title('Valores Observados, Suavizado Holt-Winters y Predicción')
+plt.legend()
+plt.xticks(rotation=30, ha='right')
+plt.show()
+
+#%% Aplicar suavizado Holt-Winters.
+#Tercer forma a ver que pasa
+modelo_holt_winters = sm.tsa.ExponentialSmoothing(Vuelos_TR['Vuelos'],
+                                                  trend='add',
+                                                  seasonal='multiplicative',
+                                                  seasonal_periods=12).fit()
+
+# Obtener predicciones para 1 año
+predicciones_hw = modelo_holt_winters.forecast(steps=12)
+# Mostrar la descripción del modelo
+modelo_holt_winters.summary()
+
+#%%# Crear un gráfico con matplotlib
+plt.figure(figsize=(10, 6))
+plt.plot(vuelos.index, vuelos['Vuelos'], label='Observados', marker='x', linestyle='-', color='blue')
+plt.plot(Vuelos_TR.index, modelo_holt_winters.fittedvalues, label='Suavizado Holt-Winters', linestyle='--',
+         color='orange')
+plt.plot(predicciones_hw.index, predicciones_hw, label='Holt-Winters', linestyle='--',color='green')
+plt.xlabel('Fecha')
+plt.ylabel('Cantidad')
+plt.title('Valores Observados, Suavizado Holt-Winters y Predicción')
+plt.legend()
+plt.xticks(rotation=30, ha='right')
+plt.show()
+
+
+#%% Modelos AR y MA
+
+#%% Ejemplo de clase
+# Plot ACF
+plot_acf(Bitcoin_A['PRECIO'], lags=48, alpha = 0.05)
+plt.title('Autocorrelation Function (ACF)')
+plt.show()
+
+#%% Plot PACF
+plot_pacf(Bitcoin_A['PRECIO'], lags=48, alpha = 0.05)
+plt.title('Partial Autocorrelation Function (PACF)')
+plt.show()
+
+#%% Ejemplo de clase Cordoba
+fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(7, 4))
+plot_acf(v_cordoba['V_Resident'], ax=axs[0], lags=50, alpha=0.05)
+axs[0].set_title('ACF')
+plot_pacf(v_cordoba['V_Resident'], ax=axs[1], lags=50, alpha=0.05)
+axs[1].set_title('PACF')
+#%% Diferencia de la serie de Bitcoin
+precio_diff = Bitcoin_A.diff().dropna()
+sns.lineplot(precio_diff)
+plt.title('Precio del Bitcoin: serie diferenciada')
+
+#%% Obtener el orden ACf y PACF
+fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(7, 4))
+plot_acf(Bitcoin_A['PRECIO'], ax=axs[0], lags=50, alpha=0.05)
+axs[0].set_title('ACF')
+plot_pacf(Bitcoin_A['PRECIO'], ax=axs[1], lags=50, alpha=0.05)
+axs[1].set_title('PACF')
 
 #%%
