@@ -76,3 +76,88 @@ plt.figure(figsize=(20, 20))
 plot_tree(arbol3, filled=True, feature_names=X_c.columns)
 plt.show()
 
+#%% tuneo y evaluación del modelo para la variable dependiente continua
+params_c = {
+    'max_depth': [2, 3, 5, 10, 20],
+    'min_samples_split': [5, 10, 20, 50, 100],
+    'criterion': ['squared_error', 'friedman_mse', 'absolute_error', 'poisson']}
+
+#%% Definir las metricas de evaluación
+scoring_metrics_c = {'MAE': make_scorer(mean_absolute_error),
+                     'MSE': make_scorer(mean_squared_error),
+                     'RMSE': make_scorer(lambda y_true, y_pred: mean_squared_error(y_true, y_pred, squared=False))}
+
+# cv = crossvalidation
+grid_search_c = GridSearchCV(estimator=arbol3, param_grid=params_c, cv=4, scoring=scoring_metrics_c, refit='MSE')
+grid_search_c.fit(X_train, y_train)
+
+#%% Obtener los resultados del grid search
+results_c = pd.DataFrame(grid_search_c.cv_results_)
+
+# Mostrar resultados
+print("Resultados de Grid Search:")
+print(results_c)
+
+#%% Obtener el mejor modelo
+best_model_c = grid_search_c.best_estimator_
+print(grid_search_c.best_estimator_)
+
+#%% Ajustar el mejor modelo con todo el conjunto de entrenamiento
+best_model_c.fit(X_train, y_train)
+# Predicciones en conjunto de entrenamiento y prueba
+y_train_pred_c = best_model_c.predict(X_train)
+y_test_pred_c = best_model_c.predict(X_test)
+# Medidas de bondad de ajuste en train
+y_pred_train_c = best_model_c.predict(X_train)
+# Suponiendo que tienes los valores reales en y_test_c y
+#las predicciones en y_pred_test_c
+errores = y_train - y_pred_train_c
+# Convertir los errores a un DataFrame
+errores_df = pd.DataFrame({'Errores': errores})
+# Box Plot de los errores en el conjunto de prueba
+sns.boxplot(errores_df)
+plt.title('Box Plot de Errores en el Conjunto de Prueba')
+plt.show()
+
+#%% Calcular diferentes medidas de bondad de ajuste
+mae = mean_absolute_error(y_train, y_pred_train_c)
+mse = mean_squared_error(y_train, y_pred_train_c)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_train, y_pred_train_c)
+# Imprimir las métricas
+print(f'MAE (Error Absoluto Medio): {mae:.2f}')
+print(f'MSE (Error Cuadrático Medio): {mse:.2f}')
+print(f'RMSE (Raíz del Error Cuadrático Medio): {rmse:.2f}')
+print(f'R²: {r2:.2f}')
+
+#%% Medidas de bondad de ajuste en test:
+# Medidas de bondad de ajuste en train
+y_pred_test_c = best_model_c.predict(X_test)
+# Suponiendo que tienes los valores reales en y_test_c y
+#las predicciones en y_pred_test_c
+errores = y_test - y_pred_test_c
+# Convertir los errores a un DataFrame
+errores_df = pd.DataFrame({'Errores': errores})
+# Box Plot de los errores en el conjunto de prueba
+sns.boxplot(errores_df)
+plt.title('Box Plot de Errores en el Conjunto de Prueba')
+plt.show()
+
+mae = mean_absolute_error(y_test, y_pred_test_c)
+mse = mean_squared_error(y_test, y_pred_test_c)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_test, y_pred_test_c)
+
+# Imprimir las métricas
+print(f'MAE (Error Absoluto Medio): {mae:.2f}')
+print(f'MSE (Error Cuadrático Medio): {mse:.2f}')
+print(f'RMSE (Raíz del Error Cuadrático Medio): {rmse:.2f}')
+print(f'R²: {r2:.2f}')
+
+#%% Arbol
+plt.figure(figsize=(20, 15))
+plot_tree(best_model_c, feature_names=X_c.columns.tolist(), filled=True,
+          proportion = True)
+plt.show()
+
+#%%
