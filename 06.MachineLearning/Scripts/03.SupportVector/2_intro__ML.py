@@ -44,9 +44,9 @@ seed = 99
 
 
 #data = pd.read_excel("c:/Users/dagom/Documents/docencia/DOCENCIA_FINAL_2023_PHYTON_ML_DANI/2_Introduccion_y_SVM/Chicago_Crimes_2012_to_2017.csv")
-data = pd.read_csv("C:/Users/user.DESKTOP-EHHFBKM/Desktop/master_2024/2_Introduccion_y_SVM/Chicago_Crimes_2012_to_2017.csv")
+data = pd.read_csv("/Users/luiscarrillo/Library/CloudStorage/OneDrive-Personal/Desktop/GitHub/DataScience/MachineLearning/Datasets/Chicago_Crimes_2012_to_2017.csv")
 
-
+#%%
 data = pd.DataFrame(data)
 variables = data.columns.values 
 

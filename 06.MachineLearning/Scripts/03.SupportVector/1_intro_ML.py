@@ -43,21 +43,21 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 """ Semilla """
 seed = 99
 
-## ALGUNAS UTILIDADES SOBRE EL MANEJO DE DATOS SEGURAMENTE SEA REDUNDANTE CON LO VISTO ANTERIORMENTE POR VOSOTROS
+#%% ALGUNAS UTILIDADES SOBRE EL MANEJO DE DATOS SEGURAMENTE SEA REDUNDANTE CON LO VISTO ANTERIORMENTE POR VOSOTROS
 
 
-data = pd.read_excel("C:/Users/user.DESKTOP-EHHFBKM/Desktop/master_2024/2_Introduccion_y_SVM/titanic.xlsx")
-data = pd.read_excel( "C:/Users/user.DESKTOP-EHHFBKM/Desktop/master_2024/2_Introduccion_y_SVM/titanic.xlsm")
+data = pd.read_excel("/Users/luiscarrillo/Library/CloudStorage/OneDrive-Personal/Desktop/GitHub/DataScience/MachineLearning/Datasets/titanic.xlsx")
+data = pd.read_excel( "/Users/luiscarrillo/Library/CloudStorage/OneDrive-Personal/Desktop/GitHub/DataScience/MachineLearning/Datasets/titanic.xlsm")
 
 data = data.drop(data.columns[0], axis=1) # eliminamos la primera columna que no tiene sentido
 
- ## data.shape me da un vector (tuple) de dos dimensiones con las filas y las columnas del dataframe
+ #%% data.shape me da un vector (tuple) de dos dimensiones con las filas y las columnas del dataframe
 
 print(f'Número de filas: {data.shape[0]}, Número de columnas:{data.shape[1]}') 
 data.head()
 data.dtypes
 ####
-# Crear un histograma utilizando Seaborn
+#%% Crear un histograma utilizando Seaborn
 plt.figure(figsize=(10, 6))
 sns.histplot(data=data, x='Fare', hue='Embarked', bins=30, kde=True)
 
@@ -69,7 +69,7 @@ plt.title('Histograma de Tarifas según el Puerto de Embarque')
 # Mostrar el gráfico
 plt.show()
 
-# Crear el boxplot
+#%% Crear el boxplot
 plt.figure(figsize=(10, 6))
 sns.boxplot(x='Survived', y='Fare', data=data)
 plt.title('Boxplot de Fare según la supervivencia')
@@ -78,7 +78,7 @@ plt.ylabel('Fare')
 plt.show()
 
 
-# Crear el boxplot
+#%% Crear el boxplot
 plt.figure(figsize=(12, 8))
 sns.boxplot(x='Survived', y='Fare', hue='Sex', data=data)
 plt.title('Boxplot de Fare según la supervivencia y el género')
@@ -88,17 +88,18 @@ plt.legend(title='Sex', loc='upper right')
 plt.show()
 
 ###########################################################################
-## Paso 1 ## Missing
+#%%# Paso 1 ## Missing
 ## Paso 1. vemos cuantos missing tenemos en cada variable ##
 data.isnull().sum() 
 
+
+#%% Identificamos los missing values visualmente
 import seaborn as sns
-# Identificamos los missing values visualmente
 sns.heatmap(data.isnull(), cbar=False)
 ## vemos que edad, cabin y Embarked tienen valores perdidos. Cabin tiene muchos valores perdidos
 ## df.fillna(df.mean(), inplace=True)
 
-###########################################################################
+#%%##########################################################################
 ## Paso 2 Codificacion, Imputación, o eliminacion de datos perdidos
 ## en ocasiones la información relevante es si se ha perdido un dato o no
 ## en otros casos merece la pena imputar su valor mientras que otras veces merece la pena eliminarlo
@@ -113,9 +114,8 @@ data['Cabin'] = data['Cabin'].fillna(0)
 # en caso contrario toma  valor 1.
 data['hasCabin'] = data['Cabin'].apply(lambda x: 0 if x==0 else 1)
 
-#Se eliminan de data las columnas 'PassengerId', 'Name', 'Cabin', 'Ticket'
+#%%Se eliminan de data las columnas 'PassengerId', 'Name', 'Cabin', 'Ticket'
 data = data.drop(columns=['PassengerId', 'Name', 'Cabin', 'Ticket'])
-
 
 key_cols = ['Survived', 'Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked', 'Title', 'hasCabin']
 
@@ -124,7 +124,7 @@ data.head()
 ## algunas modificaciones que pueden ser interesantes
 #Se pide en esta celda, modificar las variables Title, Parch y SibSp, donde Title tome solo los valores Mr, Mrs, Miss y Otros; 
 # Parch y SibSp toman solo los valores 0, 1 o 2 (donde 2 incluye 2 o más).
-#
+#%%
 
 data['SibSp'] = data.SibSp.apply(lambda x: 2 if x>=2 else x)
 data['Parch'] = data.Parch.apply(lambda x: 2 if x>=2 else x)
@@ -133,7 +133,7 @@ data['Parch'] = data.Parch.apply(lambda x: 2 if x>=2 else x)
 data['Title'] = data.Title.apply(lambda x: x if x in ['Mr','Mrs','Miss'] else 'Otros')
 #data['Title2'] = data.Title.apply(lambda x: 'Casados' if x in ['Mr','Mrs'] else 'Otros')
 
-# Se eliminan las 2 filas que tienen valores nulos (NaN) en esta columna.
+#%% Se eliminan las 2 filas que tienen valores nulos (NaN) en esta columna.
 data = data[~data.Embarked.isnull()]
 # Se eliminan todos los duplicados.
 data = data.drop_duplicates(inplace=False)
@@ -141,7 +141,7 @@ data = data.drop_duplicates(inplace=False)
 ############################################3
 ###### 2.2 imputacion de datos perdidos
 imputer = KNNImputer(n_neighbors=3, metric='nan_euclidean')
-# Imputamos los valores perdidos en el DataFrame 
+#%% Imputamos los valores perdidos en el DataFrame
 ## Para imputar con Knn necesitamos tranformar las variables en numeros
 le = LabelEncoder()
 # Codificamos las variables categóricas como numéricas
@@ -167,7 +167,7 @@ data_imputed=data_imputed.set_axis([key_cols], axis=1)
 
 #
 
-#ColumnTransformer: aplica diferentes transformaciones a diferentes columnas de data y 
+#%%ColumnTransformer: aplica diferentes transformaciones a diferentes columnas de data y
 #generar un nuevo DataFrame "Transformed data".
 transformer1 = [
     ('KNNImputer', KNNImputer(n_neighbors=5,  weights='uniform', metric='nan_euclidean'), ['Pclass', 'Age', 'SibSp', 'Parch', 'Fare']),
@@ -197,7 +197,7 @@ col_transformer = ColumnTransformer(transformer1, remainder='drop')
 
 ctransformed = col_transformer.fit_transform(data)
 
-##############pipeline para modelos de ML
+#%% #############pipeline para modelos de ML
 
 models = []
 models.append(('LR', LogisticRegression(random_state=seed)))
@@ -242,3 +242,5 @@ boxplots_algorithms(results, names)
 # determinista y reproducible. cross_val_score para realizar la validación cruzada y obtener el score de cada modelo. 
 
 # SVM es el mejor modelo, con un score de 0.7980
+
+#%%
