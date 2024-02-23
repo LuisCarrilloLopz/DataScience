@@ -44,8 +44,6 @@ seed = 99
 # Obtén el directorio actual del script o cuaderno
 # Define el nombre del archivo CSV
 
-
-
 #df = pd.read_csv("c:/Users/dagom/Documents/docencia/DOCENCIA_FINAL_2023_PHYTON_ML_DANI/2_Introduccion_y_SVM/SAheart.csv", sep=",", decimal=".")
 df = pd.read_csv("D:/documentos_en_D/docencia_master/SVM_emsemble_2024_dani/2_Introduccion_y_SVM (1)/2_Introduccion_y_SVM/SAheart.csv", sep=",", decimal=".")
 
@@ -53,7 +51,6 @@ df.head()
 df.describe()
 df.quantile(np.arange(0,1,0.1))
 variables = df.columns.values 
-
 
 ## una pequeña visualizacion 
 import seaborn as sns
