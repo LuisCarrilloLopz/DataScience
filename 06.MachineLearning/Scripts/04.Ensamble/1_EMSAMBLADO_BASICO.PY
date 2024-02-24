@@ -43,7 +43,7 @@ seed = 99
 
 ## DATOS ##
 
-data=pd.read_csv('C:/Users/dagom/Documents/docencia/DOCENCIA_FINAL_2023_PHYTON_ML_DANI/2_Introduccion_y_SVM/SAheartbis.csv')
+data=pd.read_csv('/Users/luiscarrillo/Library/CloudStorage/OneDrive-Personal/Desktop/GitHub/DataScience/06.MachineLearning/Datasets/SAheartbis.csv')
 
 data = data.drop(columns=["Unnamed: 0"]) ## depende de la versión la exporta
 
@@ -55,7 +55,7 @@ X=data.drop(columns="chd")
 
 
 
-### MODELOS ##
+#%%## MODELOS ##
 
 models = []
 models.append(('LR', LogisticRegression(random_state=seed)))
@@ -74,7 +74,7 @@ prediciones = []
 prediciones=[]
 
 #name='SVM'
-#model=SVC(probability=True)
+#%%model=SVC(probability=True)
 for name, model in models:
  
     pipeline = make_pipeline(model) ## en realidad no hacemos nada de pipeline pero lo dejo preparado
@@ -88,13 +88,9 @@ for name, model in models:
    #cv_results = cross_val_score(pipeline, X, y, cv=kfold, scoring='accuracy')
     results.append(accuracy)
     names.append(name)
-print('Resultados', results)    
+print('Resultados', results)
 
-
-
-
-### ensemble basico 
-## agregamos las probabilidades de los diferentes algoritmos para ver potencialmente 
+#%%# agregamos las probabilidades de los diferentes algoritmos para ver potencialmente
 ensemble1= pd.DataFrame((prediciones[0]["LR"] +  prediciones[1]["LDA"])/2)
 ensemble1=ensemble1.set_axis(['ensemble1'], axis=1)
 ensemble2= pd.DataFrame((prediciones[0]["LR"] +  prediciones[2]["KNN"])/2)
@@ -112,12 +108,13 @@ ensemble7=ensemble7.set_axis(['ensemble7'], axis=1)
 
 Resultados_finales=pd.concat((ensemble1, ensemble2, ensemble3,ensemble4, ensemble5, ensemble6, ensemble7), axis=1 )
 
+#%%
 from sklearn.preprocessing import Binarizer
 
 transformer = Binarizer(threshold=0.5).fit(Resultados_finales)  # fit does nothing.
 predicciones_ensemble=pd.DataFrame(transformer.transform(Resultados_finales))
 
-# Calculamos las curvas ROC y accuracy de los ensembles
+#%% Calculamos las curvas ROC y accuracy de los ensembles
 
 from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
@@ -167,3 +164,5 @@ pyplot.ylabel('Tasa de Verdaderos Positivos')
 pyplot.legend()
 pyplot.show()
 
+
+#%%

@@ -16,12 +16,14 @@ from sklearn.linear_model import LinearRegression,LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix 
 # importing train test split
 from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+
 seed = 99
 
 ## DATOS ##
 
 ## DATOS ##
-data = pd.read_csv("D:/documentos_en_D/docencia_master/SVM_emsemble_2024_dani/2_Introduccion_y_SVM (1)/2_Introduccion_y_SVM/SAheartbis.csv", sep=",", decimal=".")
+data = pd.read_csv("/Users/luiscarrillo/Library/CloudStorage/OneDrive-Personal/Desktop/GitHub/DataScience/06.MachineLearning/Datasets/SAheartbis.csv", sep=",", decimal=".")
 
 
 y=pd.DataFrame(data["chd"])
@@ -44,7 +46,7 @@ X_val, X_test, y_val, y_test = train_test_split(
 
 # initializing all the base model objects with default parameters
 model_1 = LinearRegression()
-model_2 = xgb.XGBRegressor()
+model_2 = SVC()
 model_3 = RandomForestRegressor()
 
 # training all the model on the train dataset
@@ -98,6 +100,4 @@ cm = confusion_matrix(y_test, final_pred)
 print(cm)
 accuracy=(cm[0,0]+cm[1,1])/(cm[0,1]+cm[1,1]+ cm[1,0]+cm[0,0])
 print('accuracy' , accuracy)
-
-
-  
+#%%

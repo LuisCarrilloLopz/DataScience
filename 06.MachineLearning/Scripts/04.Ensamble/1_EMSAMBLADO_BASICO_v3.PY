@@ -40,7 +40,7 @@ seed = 99
 
 
 #df = pd.read_csv("c:/Users/dagom/Documents/docencia/DOCENCIA_FINAL_2023_PHYTON_ML_DANI/2_Introduccion_y_SVM/SAheart.csv", sep=",", decimal=".")
-data = pd.read_csv("D:/documentos_en_D/docencia_master/SVM_emsemble_2024_dani/2_Introduccion_y_SVM (1)/2_Introduccion_y_SVM/SAheartbis.csv", sep=",", decimal=".")
+data = pd.read_csv("/Users/luiscarrillo/Library/CloudStorage/OneDrive-Personal/Desktop/GitHub/DataScience/06.MachineLearning/Datasets/SAheartbis.csv", sep=",", decimal=".")
 
 data = data.drop(columns=["Unnamed: 0"]) ## depende de la versión la exporta
 
@@ -112,13 +112,13 @@ print('Resultados', results)
 df=pd.concat(prediciones, axis=1) # con esta sentencia transformamos la lista de dataframes en un unico dataframe
 correlation_matrix = pd.DataFrame(df.corr())
 
-# Crear una matriz de correlación con colores
+#%% Crear una matriz de correlación con colores
 plt.figure(figsize=(8, 6))
 sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
 ##
 
 
-### ensemble basico 
+#%%## ensemble basico
 ## agregamos las probabilidades de los diferentes algoritmos para ver potencialmente 
 ensemble1= pd.DataFrame((prediciones[0]["LR"] +  prediciones[1]["LDA"])/2)
 ensemble1=ensemble1.set_axis(['ensemble1'], axis=1)
@@ -146,6 +146,7 @@ ensemble9 = pd.DataFrame({'Prediccion_Min_Ensamble': np.minimum.reduce([df.value
 
 Resultados_finales=pd.concat((ensemble1, ensemble2, ensemble3,ensemble4, ensemble5, ensemble6, ensemble7, ensemble8, ensemble9), axis=1 )
 
+#%%
 from sklearn.preprocessing import Binarizer
 
 transformer = Binarizer(threshold=0.5).fit(Resultados_finales)  # fit does nothing.
@@ -153,7 +154,7 @@ predicciones_ensemble=pd.DataFrame(transformer.transform(Resultados_finales))
 
 
 
-## a ojo ojo=pd.concat([predicciones_ensemble.reset_index(drop=True), y_test.reset_index(drop=True)], axis=1)
+#%%# a ojo ojo=pd.concat([predicciones_ensemble.reset_index(drop=True), y_test.reset_index(drop=True)], axis=1)
 # Calculamos las curvas ROC y accuracy de los ensembles
 
 from sklearn.metrics import roc_curve
@@ -209,4 +210,4 @@ pyplot.xlabel('Tasa de Falsos Positivos')
 pyplot.ylabel('Tasa de Verdaderos Positivos')
 pyplot.legend()
 pyplot.show()
-
+#%%

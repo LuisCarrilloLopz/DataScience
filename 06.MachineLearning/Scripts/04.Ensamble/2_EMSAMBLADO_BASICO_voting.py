@@ -18,10 +18,10 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from sklearn.ensemble import VotingClassifier
 seed = 99
 
-## DATOS ##
+#%%# DATOS ##
 
 #df = pd.read_csv("c:/Users/dagom/Documents/docencia/DOCENCIA_FINAL_2023_PHYTON_ML_DANI/2_Introduccion_y_SVM/SAheart.csv", sep=",", decimal=".")
-data = pd.read_csv("D:/documentos_en_D/docencia_master/SVM_emsemble_2024_dani/2_Introduccion_y_SVM (1)/2_Introduccion_y_SVM/SAheartbis.csv", sep=",", decimal=".")
+data = pd.read_csv("/Users/luiscarrillo/Library/CloudStorage/OneDrive-Personal/Desktop/GitHub/DataScience/06.MachineLearning/Datasets/SAheartbis.csv", sep=",", decimal=".")
 
 
 y=pd.DataFrame(data["chd"])
