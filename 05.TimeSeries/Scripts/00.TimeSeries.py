@@ -4,7 +4,6 @@ Autor: Luis Eduardo Carrillo López
 Fecha de creación: 24/02/2024
 Fecha de última modificación: 24/02/2024
 """
-
 # Importar librerías
 import os
 import numpy as np
@@ -15,8 +14,8 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.metrics import f1_score
-
+from statsmodels.tsa.arima.model import ARIMA
+from pmdarima import auto_arima
 
 #%% Establecer directorio de trabajo
 os.chdir('/Users/luiscarrillo/OneDrive/Desktop/GitHub/DataScience/05.TimeSeries/Datasets/')
@@ -66,6 +65,7 @@ print(f'\nRango de fechas: {powerconsumption.Datetime.min()}/{ powerconsumption.
 
 #%% Establecemos la fecha como índice y se elimina
 powerconsumption = powerconsumption.set_index('Datetime')
+powerconsumption = powerconsumption.asfreq('10T')
 print(powerconsumption.head())
 
 #%% Nos quedamos dos de las variables target y nos centramos en la de "Quads"
@@ -160,7 +160,6 @@ for i in range(4):
     ax[i].set_ylim([-1, 12])
     ax[i].set_xlabel('Tiempo', fontsize=14)
 
-#%% Realizar el test de Adfuller para verificar si la serie es estacionaria
 #%% Análsis de autocorrelación
 fas = sm.tsa.acf(powerconsumption.PowerConsumption_Zone1, nlags=200)
 fap = sm.tsa.pacf(powerconsumption.PowerConsumption_Zone1, nlags=150)
@@ -226,11 +225,11 @@ plt.show()
 
 #%% Obtener dos muestras de powerconsumption la primera de con el 80% de los datos y la segunda con el 20% restante ordenados por fecha
 powerconsumption = powerconsumption.sort_index()
-train = powerconsumption.iloc[:-202]
+train = powerconsumption[:'2017-12-28 23:50:00']
 train = train[['PowerConsumption_Zone1']]
 train.index = pd.DatetimeIndex(train.index.values,
                                freq=train.index.inferred_freq)
-test = powerconsumption.tail(202)
+test = powerconsumption['2017-12-29 00:00:00':]
 test = test[['PowerConsumption_Zone1']]
 test.index = pd.DatetimeIndex(test.index.values,
                                freq=test.index.inferred_freq)
@@ -240,7 +239,7 @@ modelo_holt_winters = sm.tsa.ExponentialSmoothing(train, trend='add', seasonal='
 print(modelo_holt_winters.summary())
 
 #%% Obtener predicciones para 1 año
-predicciones_hw = modelo_holt_winters.forecast(steps=202)
+predicciones_hw = modelo_holt_winters.forecast(steps=288)
 # Mostrar la descripción del modelo
 modelo_holt_winters.summary()
 
@@ -284,54 +283,180 @@ print(f'MSE: {mse:0.2f}')
 print(f'MAE: {mae:0.2f}')
 
 #%% Representar la serie y las funciones de autocorrelación y autocorrelación parcial.
-fig, ax = plt.subplots(3, 1, figsize=(15, 15))
-sm.graphics.tsa.plot_acf(train['error'].iloc[1:], lags=144, ax=ax[0])
-sm.graphics.tsa.plot_pacf(train['error'].iloc[1:], lags=144, ax=ax[1])
-ax[2].plot(train['error'])
+dif = sm.tsa.statespace.tools.diff(powerconsumption.PowerConsumption_Zone1, k_diff=1, k_seasonal_diff=1, seasonal_periods=144)
+
+dif.plot()
+plt.title('Time series differentiation')
 plt.show()
 
-#%% Modelo ARIMA(2,2,1)(0,1,1)144
-modelo_arima_221 = sm.tsa.ARIMA(train['PowerConsumption_Zone1'], order=(2, 2, 1), seasonal_order=(0,1,1,144)).fit()
-print(modelo_arima_221.summary())
+fas_dif = sm.tsa.acf(dif, nlags=200)
+fap_dif = sm.tsa.pacf(dif, nlags=200)
 
-#%% Predicciones
-predicciones_arima_221 = modelo_arima_221.forecast(steps=202)
+fig, axs = plt.subplots(1, 2, figsize=(15,7))
+fig.suptitle('Differenced time series correlograms', y=1)
+axs[0].stem(fas_dif)
+axs[0].set_title('ACF')
+axs[0].set_xlabel('n_lags')
+axs[0].grid(True)
+axs[1].stem(fap_dif)
+axs[1].set_title('PACF')
+axs[1].set_xlabel('n_lags')
+axs[1].grid(True)
+plt.tight_layout()
+plt.show()
+
+#######################
+#%%### Modelo ARIMA(1,0,0)#%###
+#######################
+train = powerconsumption[:'2017-12-28 23:50:00']
+train = train[['PowerConsumption_Zone1']]
+test = powerconsumption['2017-12-29 00:00:00':]
+test = test[['PowerConsumption_Zone1']]
+modelo_arima_100 = sm.tsa.ARIMA(train['PowerConsumption_Zone1'], order=(1, 0, 0)).fit()
+print(modelo_arima_100.summary())
+
+#%% Obtén las predicciones con intervalos de confianza
+predicciones_arima_100 = modelo_arima_100.get_prediction(start=pd.to_datetime('2017-12-29 00:00:00'), end=pd.to_datetime('2017-12-30 23:50:00'), dynamic=False)
+pred_conf = predicciones_arima_100.conf_int()
 
 #%% Gráfico
 plt.figure(figsize=(10, 6))
 plt.plot(powerconsumption.index, powerconsumption['PowerConsumption_Zone1'], label='Observados', linestyle='-', color='blue')
-plt.plot(train.index, modelo_arima_221.fittedvalues, label='ARIMA(2,2,1)(0,1,1)144', linestyle='--', color='orange')
-plt.plot(predicciones_arima_221, label='ARIMA(2,2,1)(0,1,1)144 Prediction', linestyle='--', color='green')
+plt.plot(train.index, modelo_arima_100.fittedvalues, label='ARIMA(1,0,0)', linestyle='--', color='orange')
+plt.plot(predicciones_arima_100.predicted_mean.index, predicciones_arima_100.predicted_mean, label='ARIMA(1,0,0) Prediction', linestyle='--', color='green')
+plt.fill_between(pred_conf.index,pred_conf.iloc[:, 0],pred_conf.iloc[:, 1], color='g', alpha=.3)
 plt.xlabel('Fecha')
 plt.ylabel('Cantidad')
-plt.title('Valores Observados, ARIMA(2,2,1)(0,1,1)144 y Predicción')
+plt.title('Valores Observados, ARIMA(1,0,0) y Predicción')
 plt.legend()
 plt.xticks(rotation=30, ha='right')
 plt.show()
 
-#%% Calcular el accuracy en la muestra de train y test
-train['fitted_arima_221'] = modelo_arima_221.fittedvalues
-test['forecast_arima_221'] = predicciones_arima_221
-
-train['error_arima_221'] = train['PowerConsumption_Zone1'] - train['fitted_arima_221']
-train['error_pct_arima_221'] = train['error_arima_221'] / train['PowerConsumption_Zone1']
-test['error_arima_221'] = test['PowerConsumption_Zone1'] - test['forecast_arima_221']
-test['error_pct_arima_221'] = test['error_arima_221'] / test['PowerConsumption_Zone1']
-
-train_accuracy_arima_221 = 1 - np.mean(np.abs(train['error_arima_221']) / np.abs(train['PowerConsumption_Zone1']))
-test_accuracy_arima_221 = 1 - np.mean(np.abs(test['error_arima_221']) / np.abs(test['PowerConsumption_Zone1']))
-
-print(f'Accuracy en la muestra de train: {train_accuracy_arima_221:0.2%}')
-print(f'Accuracy en la muestra de test: {test_accuracy_arima_221:0.2%}')
-
 #%% Calcular el RMSE, MSE, MAE, y matriz de confusión
-rmse_arima_221 = np.sqrt(mean_squared_error(test['PowerConsumption_Zone1'], test['forecast_arima_221']))
-mse_arima_221 = mean_squared_error(test['PowerConsumption_Zone1'], test['forecast_arima_221'])
-mae_arima_221 = mean_absolute_error(test['PowerConsumption_Zone1'], test['forecast_arima_221'])
+rmse_arima_100 = np.sqrt(mean_squared_error(test['PowerConsumption_Zone1'], predicciones_arima_100.predicted_mean))
+mse_arima_100 = mean_squared_error(test['PowerConsumption_Zone1'], predicciones_arima_100.predicted_mean)
+mae_arima_100 = mean_absolute_error(test['PowerConsumption_Zone1'], predicciones_arima_100.predicted_mean)
 
-print(f'RMSE: {rmse_arima_221:0.2f}')
-print(f'MSE: {mse_arima_221:0.2f}')
-print(f'MAE: {mae_arima_221:0.2f}')
+print(f'RMSE: {rmse_arima_100:0.2f}')
+print(f'MSE: {mse_arima_100:0.2f}')
+print(f'MAE: {mae_arima_100:0.2f}')
 
+#%% Buscar modelo optimo con auto_arima
+####auto_arima_model = auto_arima(train['PowerConsumption_Zone1'], start_p=0, start_q=0, max_p=3, max_q=3, seasonal=True, m=144, d=None, D=None, trace=True, error_action='ignore', suppress_warnings=True, stepwise=True)
+####print(auto_arima_model.summary())
+#Performing stepwise search to minimize aic
+#ARIMA(0,1,0)(1,0,1)[144] intercept   : AIC=inf, Time=1177.26 sec
+#ARIMA(0,1,0)(0,0,0)[144] intercept   : AIC=11101.283, Time=0.01 sec
+#ARIMA(1,1,0)(1,0,0)[144] intercept   : AIC=inf, Time=541.60 sec
+#ARIMA(0,1,1)(0,0,1)[144] intercept   : AIC=inf, Time=568.59 sec
+#ARIMA(0,1,0)(0,0,0)[144]             : AIC=11099.284, Time=0.02 sec
+#ARIMA(0,1,0)(1,0,0)[144] intercept   : AIC=inf, Time=576.39 sec
+#ARIMA(0,1,0)(0,0,1)[144] intercept   : AIC=inf, Time=462.91 sec
+#ARIMA(1,1,0)(0,0,0)[144] intercept   : AIC=10651.850, Time=0.06 sec
+#ARIMA(1,1,0)(0,0,1)[144] intercept   : AIC=inf, Time=880.82 sec
+#ARIMA(1,1,0)(1,0,1)[144] intercept   : AIC=inf, Time=1456.31 sec
+#ARIMA(2,1,0)(0,0,0)[144] intercept   : AIC=10652.465, Time=0.17 sec
+#ARIMA(1,1,1)(0,0,0)[144] intercept   : AIC=10652.093, Time=0.17 sec
+#ARIMA(0,1,1)(0,0,0)[144] intercept   : AIC=10795.276, Time=0.10 sec
+#ARIMA(2,1,1)(0,0,0)[144] intercept   : AIC=10645.503, Time=0.29 sec
+#ARIMA(2,1,1)(1,0,0)[144] intercept   : AIC=10516.823, Time=1662.84 sec
+#ARIMA(2,1,1)(2,0,0)[144] intercept   : AIC=10466.372, Time=28227.51 secPerforming stepwise search to minimize aic
+#ARIMA(0,1,0)(1,0,1)[144] intercept   : AIC=inf, Time=1177.26 sec
+#ARIMA(0,1,0)(0,0,0)[144] intercept   : AIC=11101.283, Time=0.01 sec
+#ARIMA(1,1,0)(1,0,0)[144] intercept   : AIC=inf, Time=541.60 sec
+#ARIMA(0,1,1)(0,0,1)[144] intercept   : AIC=inf, Time=568.59 sec
+#ARIMA(0,1,0)(0,0,0)[144]             : AIC=11099.284, Time=0.02 sec
+#ARIMA(0,1,0)(1,0,0)[144] intercept   : AIC=inf, Time=576.39 sec
+#ARIMA(0,1,0)(0,0,1)[144] intercept   : AIC=inf, Time=462.91 sec
+#ARIMA(1,1,0)(0,0,0)[144] intercept   : AIC=10651.850, Time=0.06 sec
+#ARIMA(1,1,0)(0,0,1)[144] intercept   : AIC=inf, Time=880.82 sec
+#ARIMA(1,1,0)(1,0,1)[144] intercept   : AIC=inf, Time=1456.31 sec
+#ARIMA(2,1,0)(0,0,0)[144] intercept   : AIC=10652.465, Time=0.17 sec
+#ARIMA(1,1,1)(0,0,0)[144] intercept   : AIC=10652.093, Time=0.17 sec
+#ARIMA(0,1,1)(0,0,0)[144] intercept   : AIC=10795.276, Time=0.10 sec
+#ARIMA(2,1,1)(0,0,0)[144] intercept   : AIC=10645.503, Time=0.29 sec
+#ARIMA(2,1,1)(1,0,0)[144] intercept   : AIC=10516.823, Time=1662.84 sec
+#ARIMA(2,1,1)(2,0,0)[144] intercept   : AIC=10466.372, Time=28227.51 sec
+#ARIMA(2,1,2)(0,1,1)[144] intercept   : AIC=10466.372, Time=28227.51 sec
 
+#######################
+#%% Modelo ARIMA(2,1,2)(0,1,1)[144]#
+#######################
+s = 144
+p = 2
+q = 2
+d = 1
+P = 0
+Q = 1
+D = 1
+modelo_arima_212 = ARIMA(train, order=(p,d,q), seasonal_order=(P,D,Q,s))
+modelo_arima_212 = modelo_arima_212.fit(low_memory=True)
+print('SARIMA model summary\n', modelo_arima_212.summary())
 
+#%% Predicciones
+predicciones_arima_212 = modelo_arima_212.get_prediction(start=pd.to_datetime('2017-12-29 00:00:00'), end=pd.to_datetime('2017-12-30 23:50:00'), dynamic=False)
+pred_conf = predicciones_arima_212.conf_int()
+
+#%% Gráfico
+plt.figure(figsize=(10, 6))
+plt.plot(powerconsumption.index, powerconsumption['PowerConsumption_Zone1'], label='Observados', linestyle='-', color='blue')
+plt.plot(train.index, modelo_arima_212.fittedvalues, label='ARIMA(2,1,2)(0,1,1)[144]', linestyle='--', color='orange')
+plt.plot(predicciones_arima_212.predicted_mean.index, predicciones_arima_212.predicted_mean, label='ARIMA(2,1,2)(0,1,1)[144] Prediction', linestyle='--', color='green')
+plt.fill_between(pred_conf.index,pred_conf.iloc[:, 0],pred_conf.iloc[:, 1], color='g', alpha=.3)
+plt.xlabel('Fecha')
+plt.ylabel('Cantidad')
+plt.title('Valores Observados, ARIMA(2,1,2)(0,1,1)[144] y Predicción')
+plt.legend()
+plt.xticks(rotation=30, ha='right')
+plt.show()
+
+#%% Plotear los errores
+predicciones_arima_212_1 = modelo_arima_212.get_prediction(end=len(powerconsumption)-1)
+err = powerconsumption['PowerConsumption_Zone1'] - predicciones_arima_212_1.predicted_mean
+fig, (err1, err2) = plt.subplots(1, 2, figsize=(12,6))
+fig.suptitle('SARIMA errors')
+err1.plot(err, 'bo')
+err1.set_ylim([-7000,7000])
+err1.set_xlabel('Date')
+err1.set_ylabel('Power Consumption')
+sns.histplot(err, bins=13, kde=True, ax=err2, binrange=(-5000,5000))
+err2.set_xlabel('Power Consumption')
+plt.tight_layout()
+plt.show()
+
+#%% Comparar los valores de la predicciones_arima_212 vs predicciones_arima_100 vs predicciones_hw ¿cuál ajusta mejor?
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+
+# Calcular el RMSE, MSE, MAE para cada modelo
+rmse_hw = np.sqrt(mean_squared_error(test['PowerConsumption_Zone1'], predicciones_hw))
+mse_hw = mean_squared_error(test['PowerConsumption_Zone1'], predicciones_hw)
+mae_hw = mean_absolute_error(test['PowerConsumption_Zone1'], predicciones_hw)
+
+rmse_arima_100 = np.sqrt(mean_squared_error(test['PowerConsumption_Zone1'], predicciones_arima_100.predicted_mean))
+mse_arima_100 = mean_squared_error(test['PowerConsumption_Zone1'], predicciones_arima_100.predicted_mean)
+mae_arima_100 = mean_absolute_error(test['PowerConsumption_Zone1'], predicciones_arima_100.predicted_mean)
+
+rmse_arima_212 = np.sqrt(mean_squared_error(test['PowerConsumption_Zone1'], predicciones_arima_212.predicted_mean))
+mse_arima_212 = mean_squared_error(test['PowerConsumption_Zone1'], predicciones_arima_212.predicted_mean)
+mae_arima_212 = mean_absolute_error(test['PowerConsumption_Zone1'], predicciones_arima_212.predicted_mean)
+
+# Imprimir los resultados
+print(f'Para el modelo Holt-Winters: RMSE = {rmse_hw}, MSE = {mse_hw}, MAE = {mae_hw}')
+print(f'Para el modelo ARIMA(1,0,0): RMSE = {rmse_arima_100}, MSE = {mse_arima_100}, MAE = {mae_arima_100}')
+print(f'Para el modelo ARIMA(2,1,2): RMSE = {rmse_arima_212}, MSE = {mse_arima_212}, MAE = {mae_arima_212}')
+
+# Graficar los valores reales y las predicciones de los tres modelos
+plt.figure(figsize=(10, 6))
+plt.plot(test.index, test['PowerConsumption_Zone1'], label='Valores reales', linestyle='-', color='blue')
+plt.plot(predicciones_hw.index, predicciones_hw, label='Predicciones Holt-Winters', linestyle='--', color='orange')
+plt.plot(predicciones_arima_100.predicted_mean.index, predicciones_arima_100.predicted_mean, label='Predicciones ARIMA(1,0,0)', linestyle='--', color='green')
+plt.plot(predicciones_arima_212.predicted_mean.index, predicciones_arima_212.predicted_mean, label='Predicciones ARIMA(2,1,2)', linestyle='--', color='red')
+plt.xlabel('Fecha')
+plt.ylabel('Consumo de energía')
+plt.title('Valores reales vs Predicciones de los tres modelos')
+plt.legend()
+plt.xticks(rotation=30, ha='right')
+plt.show()
+
+#%%
