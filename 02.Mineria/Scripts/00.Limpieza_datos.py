@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from Data.FuncionesMineria import analizar_variables_categoricas, atipicosAmissing, patron_perdidos, ImputacionCuant, \
+from Datasets.FuncionesMineria import analizar_variables_categoricas, atipicosAmissing, patron_perdidos, ImputacionCuant, \
     ImputacionCuali
 
 # %% Establecemos nuestro escritorio de trabajo
